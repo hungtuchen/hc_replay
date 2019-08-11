@@ -2,6 +2,7 @@ site_name: Hippocampal replay
 nav:
     - Home: index.md
     - Outline: outline.md
+    - References: references.md
 markdown_extensions:
     - toc:
         permalink: True
