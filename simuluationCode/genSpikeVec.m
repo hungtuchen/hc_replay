@@ -7,5 +7,7 @@ if nargin < 2
     rateVector = 1;
 end
 
-spikeVec = rand(size(probabilityVector));
-spikeVec = spikeVec > probabilityVector*rateVector;
+spikeVec = rand(size(probabilityVector,2),1)';
+for i = 1:11
+    spikeVec(i) = spikeVec(i) < probabilityVector(position,i)*rateVector(i);
+end
