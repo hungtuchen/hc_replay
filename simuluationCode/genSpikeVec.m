@@ -1,4 +1,4 @@
-function spikeVec = genSpikeVec(probabilityVector,rateVector);
+function spikeVec = genSpikeVec(position,probabilityVector,rateVector);
 %%
 % 
 %
