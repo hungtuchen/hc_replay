@@ -8,6 +8,6 @@ See the tutorial page [here](https://nbviewer.jupyter.org/github/Summer-MIND/min
 
 ## Nice and slow method
 
-Manually identify a training set of 20 or so SWRs using [this script](https://github.com/transedward/hc_replay/tasks/Alyssa_Tmaze/beta/SCRIPT_Manually_Identify_SWRs.m). Then compute their frequency spectrum using SWRfreak.m and detect SWR candidates with amSWR.m. 
+Manually identify a training set of 20 or so SWRs using [this script](https://github.com/transedward/hc_replay/blob/master/tasks/Alyssa_Tmaze/beta/SCRIPT_Manually_Identify_SWRs.m). Then compute their frequency spectrum using SWRfreak.m and detect SWR candidates with amSWR.m. 
 
 
