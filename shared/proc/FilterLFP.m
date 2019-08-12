@@ -9,7 +9,7 @@ function lfp_tsd = FilterLFP(cfg_in,lfp_tsd)
 %
 % CFG OPTIONS with defaults:
 %
-% cfg.type = 'butter'; % {'cheby1','butter','fdesign'} -- type of filter to be used
+% cfg.type = 'fdesign'; % {'cheby1','butter','fdesign'} -- type of filter to be used
 % cfg.order = 4; % filter order
 % cfg.display_filter = 0; % show output of fvtool on filter
 % cfg.bandtype = 'bandpass'; % 'highpass', 'lowpass'
@@ -19,7 +19,7 @@ function lfp_tsd = FilterLFP(cfg_in,lfp_tsd)
 %
 % MvdM 2014-06-24, 25 (update cfg_in)
 
-cfg_def.type = 'butter';
+cfg_def.type = 'fdesign';
 cfg_def.order = 4;
 cfg_def.display_filter = 0;
 cfg_def.band = 'bandpass'; % not used
