@@ -1,30 +1,36 @@
-%% generate locations within a maze (x,y coords)
-
-time_range = 100; % time dimension 
-x_range = 50; % spatial dimensions
-y_range = 10;  % spatial dimensions
-x = 1; % starting point
-xs = zeros(1,time_range); % to output the x-coords
-forward_prob = .9; 
-
-% now sample within this range, for a given set of time points 
-for t = 1 : time_range
-    if x < x_range
-        if rand > (1 - forward_prob)
-            x = x + 1; %  move forward
-        else
-            x = x - 1; % move backward
-        end
-    else
-        x = x - 1; % move backward
+function xy_coords = behaviorGenerator(x_range, duration, forward_prob) 
+    % MIND 2019: written by matt schafer
+    % to generate locations within a maze (x,y coords)
+    
+    x = 0; %y = round(y_range/2); % starting point
+    xy_coords = zeros(1,duration); % to output the location coords    
+    if nargin == 2 
+        forward_prob = .8; % pr(move forward in maze)
     end
-    xs(t) = x + 1; % put into x-coord vector
+    
+    for t = 1 : duration
+        
+        speed = randi(5); % want to make into a distribution
+                     
+        if rand > (1 - forward_prob)
+            x = x + 1 * speed; % move forward
+        else
+            x = x - 1 * speed; % move backward
+        end            
+   
+        if x <= 0
+            x = 0;
+        end
+        
+        if x >= x_range
+            x = x_range;
+            x = x - 1 * speed; % move backward
+        end
+        
+        xy_coords(1,t) = x; % log coordinates
+        
+    end
+    
+    plot(xy_coords(1,:)); % plot
+    
 end
-
-%%
-
-
-% put the data into the POSition structure (tsd)
-pos = LoadPost([]); % this reads from a .nlv file; will output the pos tsd structure
-% plot the explored locations
-plot(getd(pos,'y'),getd(pos,'x'),'.','Color',[0.5 0.5 0.5],'MarkerSize',1); % note getd() gets data corresponding to a specific label (x and y here)
