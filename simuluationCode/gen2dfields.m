@@ -2,7 +2,6 @@ function fields = gen2dfields(inEnv,nfields)
 %%
 %
 %
-nfields = 31;
 %%
 switch length(inEnv)
     case 1
@@ -13,21 +12,29 @@ switch length(inEnv)
             [randi(size(inEnv,1),[nfields 1]) ...
             randi(size(inEnv,2),[nfields 1])]; 
 
-        fields = zeros(size(inEnv));
+        
+        fields = zeros(size(inEnv,1),size(inEnv,2),nfields);
         
         for i = 1:length(coords)
-            fields(coords(i,1),coords(i,2)) = 1;
+            fields(coords(i,1),coords(i,2),i) = 1;
         end
 case 2
     
     coords = find(inEnv == 1);
     coords = randsample(coords,nfields);
-    fields = zeros(size(inEnv));
+    fields = zeros(size(inEnv,1),size(inEnv,2),nfields);
     for i = 1:length(coords)
-        fields(coords(i)) = 1;
+        temp = fields(:,:,i);
+        temp(coords(i)) = 1;
+        fields(:,:,i) = temp;
     end
 end
 %%
+for i = 1:nfields
+    fields(:,:,i) = smoothdata(fields(:,:,i),1,'gaussian',sqrt(nfields)*sqrt(length(fields))); % scaling by the size of the field %
 
-fields = imgaussfilt(fields,2*sqrt(length(inEnv))); % scaling by the size of the field %
-fields = fields./max(max(fields));
+    fields(:,:,i) = smoothdata(fields(:,:,i),2,'gaussian',sqrt(nfields)*sqrt(length(fields))); % scaling by the size of the field %
+end
+    fields = fields./max(max(max(fields)));
+    imagesc(sum(fields,3));
+%%

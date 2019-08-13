@@ -23,4 +23,5 @@ switch TYPE
     end
 end
 %%
-    fields = smoothdata(fields,1,'gaussian',6);
+    fields = smoothdata(fields,1,'gaussian',sqrt(length(fields));
+    fields = fields./max(max(fields));
