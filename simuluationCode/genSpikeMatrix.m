@@ -8,9 +8,9 @@ locations = behaviorGenerator('square',fieldSize,10000,0.5);
 %%
 for i = 1:length(locations)
     
-    locVector = location2vector(locations(i,:),[500 500]);
+    locVector = location2vector(locations(:,i),[500 500]);
     
-    spikeMatrix(i,:) = genSpikeVec(locations(i,:),fieldVector,ones(size(fields)));
+    spikeMatrix(i,:) = genSpikeVec(locVector(i,:),fieldVector,ones(size(fields)));
     
     
 end

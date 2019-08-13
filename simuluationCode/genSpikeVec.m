@@ -6,9 +6,8 @@ if nargin < 2
     disp('++ no rate vector, rate = constant')
     rateVector = 1;
 end
-if size(position,2) == 1
     spikeVec = rand(size(probabilityVector,2),1)';
-    for i = 1:nfields
+    for i = 1:size(probabilityVector,2)
         spikeVec(i) = spikeVec(i) < probabilityVector(position,i)*rateVector(i);
     end
-end
+
