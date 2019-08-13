@@ -1,55 +1,59 @@
-function locations = behaviorGenerator2D(type, length, duration, forward_prob) 
+function [locations, arena] = behaviorGenerator(type, dim_length, duration, reward_num, pause_likelihood) 
     % MIND 2019: written by matt schafer
     % to generate locations within a maze (x,y coords)
     
-    switch type 
-        case 'linear' 
-            location = 1;
-        case 'square'
-            location = [1; length/2];
-    end
+    warning('off');
     
+    % generate the arena
+    [arena, location] = arenaGenerator(type, dim_length, reward_num);
     locations = location; 
+    rest_times = [];
+    reward_count = 0;
+    freq_tbl = zeros(dim_length + 2);
     
-    if nargin == 3 
-        forward_prob = .5; % pr(move forward in maze);
-    end
-    
+    % generate the movement through the space
     for t = 1 : duration 
         
-        speed = randi(3); 
-        move = 1 * speed; 
-        
+        % action selection     
+        speed = 1; % choose a speed             
+        dir = [1 -1]; 
+        dir = dir(randi(2)); % choose a direction to move
+        % choose a dimension to move along
         if type == 'square'
            dim = randi(2);
         else
             dim = 1;
         end
-        
-        if rand > (1 - forward_prob)
-            location(dim) = location(dim) + move;
-        else
-            location(dim) = location(dim) - move;
+        move = dir * speed;          
+        if rand < pause_likelihood % generate pauses
+             move = 0;
+             rest_times = [rest_times, t]; 
         end
+        location(dim) = location(dim) + move;
         
-        % respect the bounardies
-        if location(dim) <= 0
-            location(dim) = 0;
-        end
-        
-        if location(dim) >= length
-            location(dim) = length - move; % move backward
+        % respect the boundaries
+        if location(dim) > dim_length + 1
+            location(dim) = dim_length;  
+        elseif location(dim) < 2
+            location(dim) = 2;
         end
 
+        % respect the obstacles
+        if arena(location(2), location(1)) == 0 % rows = y, columns = x
+            location(dim) = location(dim) - move; % if bump into obstacle, turn around
+        end       
+        
+        % find rewards
+        if arena(location(2), location(1)) == 2
+            reward_count = reward_count + 1;
+        end
+        
+        % where is agent?
+        freq_tbl(location(1), location(2)) = freq_tbl(location(1), location(2)) + 1;
         locations = [locations, location];
         
     end
     
     % plot
-    if type == 'square'
-        plot(locations(1,:), locations(2,:)); 
-    else
-        plot(locations(1,:));
-    end
-    
+    plotLocations(type, locations, dim_length, duration, freq_tbl)    
 end
