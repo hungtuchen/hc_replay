@@ -23,11 +23,9 @@ LoadExpKeys; % see https://github.com/mvdm/vandermeerlab/blob/master/doc/HOWTO_E
 LoadMetadata;
 %% some statistics
 num_neurons = length(S.t);
-num_spikes_per_neuron = cellfun(@length, S.t)';
+num_spikes_per_neuron = cellfun(@length, S.t);
 mean(num_spikes_per_neuron)
 std(num_spikes_per_neuron)
-
-bar(1:num_neurons,num_spikes_per_neuron)
 
 
 
