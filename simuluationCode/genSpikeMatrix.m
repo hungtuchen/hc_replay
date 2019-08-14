@@ -1,17 +1,25 @@
-nfields = 31;
-fieldSize = 500;
+nfields = 15;
+fieldSize = 50;
 %%
 fields = gen2dfields(fieldSize,nfields);
 fieldVector = reshape(fields,[],nfields);
 %%
-locations = behaviorGenerator('square',fieldSize,10000,0.5);
+[locations, arena] = behaviorGenerator('square',fieldSize,2500,0,0);
+
 %%
+spikeMatrix = zeros(length(locations),nfields);
+
 for i = 1:length(locations)
     
-    locVector = location2vector(locations(:,i),[500 500]);
+    %if mod(i,100) == 0
+        disp(['iteration: ' num2str(i)])
+    %end
     
-    spikeMatrix(i,:) = genSpikeVec(locVector(i,:),fieldVector,ones(size(fields)));
+    locVector = location2vector(locations(:,i),[size(arena)]-[2 2]);
+    position = find(locVector);
+    spikeMatrix(i,:) = genSpikeVec(position,fieldVector,ones(size(fields)));
     
     
 end
 %%
+quickPlotSpikePosition2D(locations,spikeMatrix,[])
