@@ -1,6 +1,12 @@
-nfields = 15;
-fieldSize = 50;
+function genSpikeMatrix(nfields,inField)
 %%
+%%
+% nfields = 15;
+% fieldSize = 50;
+if length(inField) == 1
+    
+end
+
 fields = gen2dfields(fieldSize,nfields);
 fieldVector = reshape(fields,[],nfields);
 %%
