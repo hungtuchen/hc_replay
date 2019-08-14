@@ -1,31 +1,20 @@
-function genSpikeMatrix(nfields,inField)
+function [locations, fieldVector, fields, spikeMatrix] = ...
+    genSpikeMatrix(nfields,firingRateVector,fieldWidthVector,arenaSize,timeSteps)
 %%
 %%
 % nfields = 15;
-% fieldSize = 50;
-if length(inField) == 1
-    
-end
+% arenaSize = 50;
 
-fields = gen2dfields(fieldSize,nfields);
+fields = gen2dfields(arenaSize,nfields,fieldWidthVector);
 fieldVector = reshape(fields,[],nfields);
 %%
-[locations, arena] = behaviorGenerator('square',fieldSize,2500,0,0);
+[locations, arena] = behaviorGenerator('square',arenaSize,timeSteps,0,0);
 
 %%
-spikeMatrix = zeros(length(locations),nfields);
 
-for i = 1:length(locations)
-    
-    %if mod(i,100) == 0
-        disp(['iteration: ' num2str(i)])
-    %end
-    
-    locVector = location2vector(locations(:,i),[size(arena)]-[2 2]);
-    position = find(locVector);
-    spikeMatrix(i,:) = genSpikeVec(position,fieldVector,ones(size(fields)));
-    
-    
-end
+spikeMatrix = simulateSpikes(locations,arena,fieldVector,firingRateVector,'homeBrew');
+
 %%
+%%
+quickPlotRaster(spikeMatrix)
 quickPlotSpikePosition2D(locations,spikeMatrix,[])

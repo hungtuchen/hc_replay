@@ -1,5 +1,5 @@
 function plotLocations(type, locations, dim_length, duration, freq_tbl)
-
+figure
 if type == 'square'
         plot(locations(1, :), locations(2, :)); 
         xlim([1 dim_length]);
