@@ -16,7 +16,7 @@ function [arena, location] = arenaGenerator(type, dim_length, reward_num)
             arena = [unexplorable; explorable; unexplorable];
      
         case 'square'
-            location = [2; dim_length/2];
+            location = [randi(dim_length); randi(dim_length)]; %random starting location
             
             % create an arena
             arena = zeros(1,dim_length+2);

@@ -1,17 +1,33 @@
-nfields = 31;
-fieldSize = 500;
+function [locations, fieldVector, fields, spikeMatrix, positions] = ...
+    genSpikeMatrix(nfields,firingRateVector,fieldWidthVector,arenaSize,timeSteps)
+% nfields: how many place fields you want
+% firingRateVector: for every place field, the firing rate - the
+    % probability of firing (vector length: nfields)
+% fieldWidthVector: how big do you want the field to be? (vector length: nfields)
+
+% EXAMPLE
+% nfields = 35;
+% firingRateVector = ones(31,1); 
+% fieldWidthVector = ones(31,1);
+% arenaSize = 100;
+% timeSteps = 1000;
+
 %%
-fields = gen2dfields(fieldSize,nfields);
-fieldVector = reshape(fields,[],nfields);
+fields = gen2dfields(arenaSize,nfields,fieldWidthVector);
+fieldVector = reshape(fields,[],nfields); 
+% to unwrap: reshape(fieldVector, [arenaSize arenaSize nfields])
+
 %%
-locations = behaviorGenerator('square',fieldSize,10000,0.5);
+[locations, arena] = behaviorGenerator('square',arenaSize,timeSteps,0,0);
+
 %%
-for i = 1:length(locations)
-    
-    locVector = location2vector(locations(:,i),[500 500]);
-    
-    spikeMatrix(i,:) = genSpikeVec(locVector(i,:),fieldVector,ones(size(fields)));
-    
-    
-end
+[spikeMatrix, positions] = simulateSpikes(locations,arena,fieldVector,firingRateVector,'homeBrew');
+
 %%
+quickPlotRaster(spikeMatrix)
+[maxSpikes,spikiestCell] = max(sum(spikeMatrix,1));
+quickPlotSpikePosition2D(locations,spikeMatrix,[spikiestCell],arenaSize)
+disp([spikiestCell maxSpikes]);
+
+% format data for decoder
+packData(positions, locations, spikeMatrix, fieldVector, arenaSize);

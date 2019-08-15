@@ -1,4 +1,4 @@
-function fields = gen2dfields(inEnv,nfields)
+function fields = gen2dfields(inEnv,nfields,fieldWidth)
 %%
 %
 %
@@ -31,10 +31,13 @@ case 2
 end
 %%
 for i = 1:nfields
-    fields(:,:,i) = smoothdata(fields(:,:,i),1,'gaussian',sqrt(nfields)*sqrt(length(fields))); % scaling by the size of the field %
+    fields(:,:,i) = smoothdata(fields(:,:,i),1,'gaussian',...
+        sqrt(nfields)*sqrt(length(fields))*fieldWidth(i)); % scaling by the size of the field %
 
-    fields(:,:,i) = smoothdata(fields(:,:,i),2,'gaussian',sqrt(nfields)*sqrt(length(fields))); % scaling by the size of the field %
+    fields(:,:,i) = smoothdata(fields(:,:,i),2,'gaussian',...
+        sqrt(nfields)*sqrt(length(fields))*fieldWidth(i)); % scaling by the size of the field %
+    fields(:,:,i) = fields(:,:,i)./max(max(max(fields(:,:,i))));
 end
-    fields = fields./max(max(max(fields)));
+    
     imagesc(sum(fields,3));
 %%

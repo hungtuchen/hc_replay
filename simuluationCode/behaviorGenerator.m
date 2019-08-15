@@ -1,5 +1,4 @@
-function [locations, arena] = behaviorGenerator(type, dim_length, duration, reward_num, pause_likelihood) 
-    % MIND 2019: written by matt schafer
+function [locations, arena] = behaviorGenerator(type, dim_length, duration, reward_num, pause_prob) 
     % to generate locations within a maze (x,y coords)
     
     warning('off');
@@ -14,21 +13,29 @@ function [locations, arena] = behaviorGenerator(type, dim_length, duration, rewa
     % generate the movement through the space
     for t = 1 : duration 
         
-        % action selection     
-        speed = 1; % choose a speed             
-        dir = [1 -1]; 
-        dir = dir(randi(2)); % choose a direction to move
+        % action selection  
         % choose a dimension to move along
         if type == 'square'
            dim = randi(2);
         else
             dim = 1;
         end
+        
+        % choose a direction to move
+%         if rand < forward_prob
+%             dir = 1;
+%         else
+%             dir = -1;
+%         end
+        dir = [1 -1]; 
+        dir = dir(randi(2)); 
+        
+        speed = 1; % choose a speed 
         move = dir * speed;          
-        if rand < pause_likelihood % generate pauses
-             move = 0;
-             rest_times = [rest_times, t]; 
-        end
+%         if rand < pause_prob % generate pauses
+%              move = 0;
+%              rest_times = [rest_times, t]; 
+%         end
         location(dim) = location(dim) + move;
         
         % respect the boundaries
