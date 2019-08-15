@@ -25,7 +25,7 @@ fieldVector = reshape(fields,[],nfields);
 %%
 quickPlotRaster(spikeMatrix)
 [maxSpikes,spikiestCell] = max(sum(spikeMatrix,1));
-quickPlotSpikePosition2D(locations,spikeMatrix,[spikiestCell],arenaSize)
-disp([spikiestCell maxSpikes]);
+quickPlotSpikePosition2D(locations,spikeMatrix,[spikiestCell])
+disp([spikiestCell maxSpikes);
 
 packData(positions, locations, spikeMatrix, fieldVector, arenaSize);

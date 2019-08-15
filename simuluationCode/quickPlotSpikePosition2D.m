@@ -1,4 +1,4 @@
-function quickPlotSpikePosition2D(position,spikeMatrix,cellNumber)
+function quickPlotSpikePosition2D(position,spikeMatrix,cellNumber,arenaSize)
 
     figure
     hold on
@@ -6,15 +6,17 @@ function quickPlotSpikePosition2D(position,spikeMatrix,cellNumber)
     
     if ~isempty(cellNumber)
         spikeIndex = find(spikeMatrix(:,cellNumber));
-        plot(position(1,spikeIndex),position(2,spikeIndex),'o','markerfacecolor','r')
+        plot(position(2,spikeIndex),position(1,spikeIndex),'o','markerfacecolor','r')
     else
         clrs = jet(size(cellNumber,2));
         
         for CELL = 1:size(cellNumber,2)
             spikeIndex = find(spikeMatrix(:,cellNumber));
-            plot(position(1,spikeIndex),position(2,spikeIndex),...
+            plot(position(2,spikeIndex),position(1,spikeIndex),...
                 'o','markerfacecolor',clrs(CELL,:))
         end
     end
     
+    xlim([0 arenaSize]); ylim([0 arenaSize]);
+    set(gca,'ydir','reverse')
     
