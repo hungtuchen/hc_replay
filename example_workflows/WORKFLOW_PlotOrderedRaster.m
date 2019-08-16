@@ -1,12 +1,14 @@
-%% preamble -- see lab wiki for explanation at:
-% http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week1
-clear all; pack
+%% setup paths
 
-%MASTER_root = 'D:\My_Documents\Dropbox\projects\Alyssa'; % replace this with home folder of your project
-%cd(MASTER_root);
-
-%MASTER_path; % reset and then set up path for this project
-
+data_folder = 'R064-2015-04-22';
+% https://rcweb.dartmouth.edu/~mvdm/wiki/doku.php?id=analysis:nsb2017:week1
+restoredefaultpath; % start with a clean slate
+% assuming you are inside the repo root
+path_shared = fullfile(pwd, 'shared'); % or, wherever your code is located -- NOTE \shared subfolder!
+path_data = fullfile(pwd, 'data');
+p = genpath(path_shared); % create list of all folders from here
+addpath(p);
+cd(fullfile(path_data, data_folder)); % replace this with where you saved the data
 %% find data folders
 %fd_cfg = []; fd_cfg.requireCandidates = 0; % don't need previously saved sharp wave-ripple (SWR) candidates here
 %fd = getTmazeDataPath(fd_cfg);
@@ -15,7 +17,6 @@ clear all; pack
 
 %% load data (alternative: FileLoader{'spikes','pos','ExpKeys','Metadata')), see lab wiki for loader info at:
 % http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week2
-
 % load all spikes
 S = LoadSpikes([]);
 pos = LoadPos([]); % note, this is raw position data read from the .nvt file, units are "camera pixels"
@@ -50,10 +51,9 @@ expCond(2).S = S;
 %% linearize paths (snap x,y position samples to nearest point on experimenter-drawn idealized track)
 nCond = length(expCond);
 for iCond = 1:nCond
-   
-    cfg_linpos = []; cfg_linpos.Coord = expCond(iCond).coord;
+    cfg_linpos = [];
+    cfg_linpos.Coord = expCond(iCond).coord;
     expCond(iCond).linpos = LinearizePos(cfg_linpos,pos);
-   
 end
 
 %% find intervals where rat is running
@@ -64,7 +64,7 @@ run_iv = TSDtoIV(cfg_spd,spd); % intervals with speed above 10 pix/s
 
 %% restrict (linearized) position data and spike data to desired intervals
 for iCond = 1:nCond
-   
+
     fh = @(x) restrict(x,run_iv); % restrict S and linpos to run times only
     expCond(iCond) = structfunS(fh,expCond(iCond),{'S','linpos'});
     
@@ -74,21 +74,79 @@ for iCond = 1:nCond
 end
 
 %% get tuning curves, see lab wiki at:
-% http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week12
+cfg_tc.smoothingKernel = gausskernel(1 / 0.05, 0.02 / 0.05);
 for iCond = 1:nCond
-    
-    cfg_tc = [];
-    expCond(iCond).tc = TuningCurves(cfg_tc,expCond(iCond).S,expCond(iCond).linpos); 
-    
+    expCond(iCond).tc = TuningCurves(cfg_tc, expCond(iCond).S, expCond(iCond).linpos);
 end
- 
 %% detect place fields
 for iCond = 1:nCond
-    
     expCond(iCond).fields = DetectPlaceCells1D([],expCond(iCond).tc.tc);
-    
 end
-    
+
+
+
+imagesc(expCond(iCond).fields.tc')
+
+% plot 
+hold on
+num_cells = size(expCond(iCond).fields.tc,2);
+for i = 1:num_cells
+    x = expCond(iCond).fields.tc(:,i);
+    hTC = plot(x);
+    set(hTC, 'LineWidth', 2)
+end
+set(gca, 'FontName', 'Helvetica')
+title('Place fields');
+xlabel('Time (bins)');
+
+size(expCond(iCond).fields.tc')
+
+plot(expCond(iCond).fields.tc)
+
+
+figure('Units', 'pixels', 'Position', [100 100 500 375]);
+hold on
+
+
+
+%ylabel('Neuron');
+
+set(gca, ...
+  'Box'         , 'off'     , ...
+  'TickDir'     , 'out'     , ...
+  'TickLength'  , [.02 .02] , ...
+  'XMinorTick'  , 'on'      , ...
+  'YMinorTick'  , 'on'      , ...
+  'YGrid'       , 'on'      , ...
+  'LineWidth'   , 1 );
+
+
+set(hFit, 'Color'           , [0 0 .5]    );
+set(hE                            , ...
+  'LineStyle'       , 'none'      , ...
+  'Marker'          , '.'         , ...
+  'Color'           , [.3 .3 .3]  );
+set(hData                         , ...
+  'LineStyle'       , 'none'      , ...
+  'Marker'          , '.'         );
+set(hModel                        , ...
+  'LineStyle'       , '--'        , ...
+  'Color'           , 'r'         );
+set(hCI(1)                        , ...
+  'LineStyle'       , '-.'        , ...
+  'Color'           , [0 .5 0]    );
+set(hCI(2)                        , ...
+  'LineStyle'       , '-.'        , ...
+  'Color'           , [0 .5 0]    );
+
+
+
+
+imagesc(expCond(iCond).fields.tc')
+
+plot(sum(expCond(iCond).fields.tc'))
+
+
 %% load CSC with good SWRs
 cfg = []; cfg.fc = ExpKeys.goodSWR(1);
 csc = LoadCSC(cfg);
@@ -106,3 +164,35 @@ for iCond = 1:nCond
     MultiRaster(cfg_mr,S_temp); % see http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week3short
 end
 linkaxes(ax,'x')
+%%
+% select only e.g., left-trials
+% filter out very long trials
+cfg_def.dt = 0.250; % binsize in s
+Q = MakeQfromS(cfg_def, S);
+
+trial_length = 5;
+num_trials = length(metadata.taskvars.trial_iv.tstart);
+for t = 1:num_trials
+    
+    trial_start = metadata.taskvars.trial_iv.tstart(t);
+    trial_end = metadata.taskvars.trial_iv.tend(t);
+    trial_duration = trial_end - trial_start;
+    
+    restrict_Q = restrict(Q, trial_start, trial_end);
+    
+    size(restrict_Q.data)
+    subplot(6,4,t)
+    
+    corr_data = corrcoef(restrict_Q.data);
+    imagesc(corr_data);
+    title(sprintf('Trial duration %.2f', trial_duration))
+    
+    axis off
+end
+
+
+
+
+
+
+%%
