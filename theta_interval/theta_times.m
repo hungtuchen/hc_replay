@@ -40,17 +40,16 @@ lfp_tsd = restrict(lfp_tsd,run_iv.tstart,run_iv.tend);
 
 [peaks,locs] = findpeaks(lfp_tsd.data);
 peak_times = lfp_tsd.tvec(locs);%finds peak tsd
-peak_iv = diff(peak_times);
 
 
 %% create peak intervals
 
-tstart = peak_iv(1:end-1);
-tstop = nan(length(peak_iv),1);
+tstart = peak_times(1:end-2);
 
-for i = 1:length(peak_iv)-1;
-    tstop(i)= peak_iv(i+1);
+
+for i = 1:length(peak_times)-1;
+    tstop(i)= peak_times(i+1);
 end
-tstop = tstop(1:end-1);
+tstop = tstop(1:end-1)';
 
 
