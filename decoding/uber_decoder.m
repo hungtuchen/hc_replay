@@ -1,16 +1,5 @@
 %function z_hat = uber_decoder(params, intervals, linpos)
 
-%% Check input types
-params.input_type = 'running';
-
-if params.input_type == 'theta'
-    restriction_iv = length(theta_starts)
-elseif params.input_type == 'SWR'
-    restriction_iv = length(SWR_iv.SWR_evt.tstart)
-else params.input_type == 'running'
-    restriction_iv = 1
-end
-
 %% load data (alternative: FileLoader{'spikes','pos','ExpKeys','Metadata')), see lab wiki for loader info at:
 
 % http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:nsb2015:week2
@@ -18,6 +7,24 @@ S = LoadSpikes([]);
 pos = LoadPos([]); % note, this is raw position data read from the .nvt file, units are "camera pixels"
 LoadExpKeys; % see https://github.com/mvdm/vandermeerlab/blob/master/doc/HOWTO_ExpKeys_Metadata.md
 LoadMetadata;
+SWR_iv = LoadSWRs%('~/Desktop/MIND_2019/hc_replay/');
+theta_times;
+
+%% Check input types
+params.input_type = 'theta';
+
+if strcmp(params.input_type, 'theta')
+    restriction_iv = length(tstart);
+    tstart = tstart;
+    tend = tstop;
+elseif strcmp(params.input_type, 'SWR')
+    restriction_iv = length(SWR_iv.SWR_evt.tstart);
+    tstart = SWR_iv.SWR_evt.tstart;
+    tend = SWR_iv.SWR_evt.tend;
+else
+    % 'running'
+    restriction_iv = 1
+end
 
 %% set up data structs for 2 experimental conditions -- see lab wiki for this task at:
 % http://ctnsrv.uwaterloo.ca/vandermeerlab/doku.php?id=analysis:task:motivationalt
@@ -70,11 +77,11 @@ iC = 7; % select cell 7 (out of 107 total)
 iCond = 1;
 
 % ENCoding variables: used for estimating tuning curves (encoding model)
-temp_tstart = (metadata.taskvars.trial_iv.tend - 4);
-tend = metadata.taskvars.trial_iv.tend;
+trial_tstart = (metadata.taskvars.trial_iv.tend - 4);
+trial_tend = metadata.taskvars.trial_iv.tend;
 
-ENC_S = restrict(expCond(iCond).S, temp_tstart, tend); % trial_iv contains the start and end times of trials
-ENC_linpos = restrict(expCond(iCond).linpos,temp_tstart, tend);
+ENC_S = restrict(expCond(iCond).S, trial_tstart, trial_tend); % trial_iv contains the start and end times of trials
+ENC_linpos = restrict(expCond(iCond).linpos,trial_tstart, trial_tend);
 
 % ENC_S = restrict(expCond(iCond).S,metadata.taskvars.trial_iv); % trial_iv contains the start and end times of trials
 % ENC_linpos = restrict(expCond(iCond).linpos,metadata.taskvars.trial_iv);
@@ -104,63 +111,114 @@ expCond(iCond).tc = TuningCurves(cfg_tc,ENC_S,ENC_linpos);
 %% Obtaining the Q-matrix
 % This “Q-matrix” is of size [nCells x nTimeBins] and contains the spike count for each neuron in a given time bin:
 
-for restr_idx = 1 : restriction_iv
+% for restr_idx = 1 : restriction_iv   
+    if restriction_iv == 1
+        cfg_Q = [];
+        cfg_Q.binsize = 0.25;
+        cfg_Q.tvec_edges = metadata.taskvars.trial_iv.tstart(1):cfg_Q.binsize:metadata.taskvars.trial_iv.tend(end);
+        cfg_Q.tvec_centers = cfg_Q.tvec_edges(1:end-1)+cfg_Q.binsize/2;
+
+        Q = MakeQfromS(cfg_Q,DEC_S);
+        imagesc(Q.data);
+
+        Q = restrict(Q,trial_tstart, trial_tend); % for speed, only decode trials of running on track
+      % Q = restrict(Q,metadata.taskvars.trial_iv); % for speed, only decode trials of running on track
+    else
+        Giant_Q = cell(1, restriction_iv);
+
+        for t_i = 1:restriction_iv
+           cfg_Q = [];
+           cfg_Q.binsize = (tend(t_i) - tstart(t_i)) / 2;
+           cfg_Q.tvec_edges = tstart(t_i):cfg_Q.binsize:tend(t_i);
+           cfg_Q.tvec_centers = cfg_Q.tvec_edges(1:end-1)+cfg_Q.binsize/2;
+           Q = MakeQfromS(cfg_Q, DEC_S);
+           Giant_Q{t_i} = Q;
+        end
+    end 
+% end 
+
+%% Decoding 
+
+iCond = 1;
 
 if restriction_iv == 1
-    cfg_Q = [];
-    cfg_Q.binsize = 0.25;
-    cfg_Q.tvec_edges = metadata.taskvars.trial_iv.tstart(1):cfg_Q.binsize:metadata.taskvars.trial_iv.tend(end);
-    cfg_Q.tvec_centers = cfg_Q.tvec_edges(1:end-1)+cfg_Q.binsize/2;
-
-    Q = MakeQfromS(cfg_Q,DEC_S);
-    imagesc(Q.data);
     
-    Q = restrict(Q,temp_tstart, tend); % for speed, only decode trials of running on track
-  % Q = restrict(Q,metadata.taskvars.trial_iv); % for speed, only decode trials of running on track
+        good_idx = expCond(iCond).tc.good_idx;
+        nBins = length(good_idx); 
+        occUniform = repmat(1/nBins, [nBins 1]); % prior over locations, P(x) in section above
+
+        nActiveNeurons = sum(Q.data > 0);
+
+        len = length(Q.tvec);
+        p = nan(length(Q.tvec),nBins); % this variable will store the posterior
+
+        for iB = 1:nBins % loop over space bins (x_i)
+            tempProd = nansum(log(repmat(expCond(iCond).tc.tc(:,good_idx(iB)),1,len).^Q.data)); % these 3 lines implement the actual decoding computation
+            tempSum = exp(-cfg_Q.binsize*nansum(expCond(iCond).tc.tc(:,good_idx(iB))',2)); % compare to the equations above!
+            p(:,iB) = exp(tempProd)*tempSum*occUniform(iB);
+        end
+
+        p = p./repmat(sum(p,2),1,nBins); % renormalize to 1 total probability
+        p(nActiveNeurons < 1,:) = 0; % ignore time bins with no activity
+
+        % need to find those p columns where all values are equal, and then set
+        % those to NaN in z_hat
+
+        [~, z_hat] = max(p, [], 2);
+        z_hat = good_idx(z_hat);
+
+        for tbin = 1:size(p,1)
+            if length(unique(p(tbin, :))) == 1 || all(isnan(p(tbin, :)))
+                z_hat(tbin) = NaN;
+            end
+        end
+    
 else
-    tstart = SWR_iv.SWR_evt.tstart;
-    tend = SWR_iv.SWR_evt.tend;
-    
-    
+    Giant_z_hat = zeros(restriction_iv, 2);
+    for t_i = 1:restriction_iv
 
-end
+        good_idx = expCond(iCond).tc.good_idx;
+        nBins = length(good_idx); 
+        occUniform = repmat(1/nBins, [nBins 1]); % prior over locations, P(x) in section above
+        
+        Q = Giant_Q{t_i};
 
-%%
-iCond = 1;
-    
-good_idx = expCond(iCond).tc.good_idx;
-nBins = length(good_idx); 
-occUniform = repmat(1/nBins, [nBins 1]); % prior over locations, P(x) in section above
+        nActiveNeurons = sum(Q.data > 0);
 
-nActiveNeurons = sum(Q.data > 0);
- 
-len = length(Q.tvec);
-p = nan(length(Q.tvec),nBins); % this variable will store the posterior
+        len = length(Q.tvec);
+        p = nan(length(Q.tvec),nBins); % this variable will store the posterior
 
-for iB = 1:nBins % loop over space bins (x_i)
-    tempProd = nansum(log(repmat(expCond(iCond).tc.tc(:,good_idx(iB)),1,len).^Q.data)); % these 3 lines implement the actual decoding computation
-    tempSum = exp(-cfg_Q.binsize*nansum(expCond(iCond).tc.tc(:,good_idx(iB))',2)); % compare to the equations above!
-    p(:,iB) = exp(tempProd)*tempSum*occUniform(iB);
-end
- 
-p = p./repmat(sum(p,2),1,nBins); % renormalize to 1 total probability
-p(nActiveNeurons < 1,:) = 0; % ignore time bins with no activity
+        for iB = 1:nBins % loop over space bins (x_i)
+            tempProd = nansum(log(repmat(expCond(iCond).tc.tc(:,good_idx(iB)),1,len).^Q.data)); % these 3 lines implement the actual decoding computation
+            tempSum = exp(-cfg_Q.binsize*nansum(expCond(iCond).tc.tc(:,good_idx(iB))',2)); % compare to the equations above!
+            p(:,iB) = exp(tempProd)*tempSum*occUniform(iB);
+        end
 
-% need to find those p columns where all values are equal, and then set
-% those to NaN in z_hat
+        p = p./repmat(sum(p,2),1,nBins); % renormalize to 1 total probability
+        p(nActiveNeurons < 1,:) = 0; % ignore time bins with no activity
 
-[~, z_hat] = max(p, [], 2);
-z_hat = good_idx(z_hat);
+        % need to find those p columns where all values are equal, and then set
+        % those to NaN in z_hat
 
-for tbin = 1:size(p,1)
-    if length(unique(p(tbin, :))) == 1 || all(isnan(p(tbin, :)))
-        z_hat(tbin) = NaN;
-    end
-end
+        [~, z_hat] = max(p, [], 2);
+        z_hat = good_idx(z_hat);
 
+        for tbin = 1:size(p,1)
+            if length(unique(p(tbin, :))) == 1 || all(isnan(p(tbin, :)))
+                z_hat(tbin) = NaN;
+            end
+        end
+        Giant_z_hat(t_i, :) = z_hat;
+        
+    end 
+   
 end
     
+
 %% find z_hat on timebase of Q
+
+if restriction_iv == 1
+    
 z = interp1(ENC_linpos.tvec, expCond(1).tc.pos_idx, Q.tvec, 'nearest'); 
 
 plot(Q.tvec, z_hat, '.');
@@ -168,6 +226,21 @@ hold on;
 plot(Q.tvec, z, 'r');
 
 figure;
-imagesc(confusionmat(z, z_hat'))
+imagesc(confusionmat(z, Giant_z_hat(t_i)')) 
+    
+else
 
-%end
+for t_i = 1:restriction_iv
+
+z = interp1(ENC_linpos.tvec, expCond(1).tc.pos_idx, Giant_Q{t_i}.tvec, 'nearest'); 
+
+plot(Giant_Q{t_i}.tvec, Giant_z_hat(t_i), '.');
+hold on;
+plot(Giant_Q{t_i}.tvec, z, 'r');
+
+% figure;
+% imagesc(confusionmat(z, Giant_z_hat(t_i)'))
+
+end
+
+end
