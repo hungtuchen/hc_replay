@@ -7,16 +7,19 @@ S = LoadSpikes([]);
 pos = LoadPos([]); % note, this is raw position data read from the .nvt file, units are "camera pixels"
 LoadExpKeys; % see https://github.com/mvdm/vandermeerlab/blob/master/doc/HOWTO_ExpKeys_Metadata.md
 LoadMetadata;
-SWR_iv = LoadSWRs%('~/Desktop/MIND_2019/hc_replay/');
+SWR_iv = LoadSWRs('~/Desktop/MIND_2019/hc_replay/');
 theta_times;
 
 %% Check input types
 params.input_type = 'theta';
 
 if strcmp(params.input_type, 'theta')
-    restriction_iv = length(tstart);
     tstart = tstart;
     tend = tstop;
+    new_theta = restrict(iv(tstart, tend), (metadata.taskvars.trial_iv.tend - 4), metadata.taskvars.trial_iv.tend);
+    tstart = new_theta.tstart;
+    tend = new_theta.tend;
+    restriction_iv = length(tstart);
 elseif strcmp(params.input_type, 'SWR')
     restriction_iv = length(SWR_iv.SWR_evt.tstart);
     tstart = SWR_iv.SWR_evt.tstart;
