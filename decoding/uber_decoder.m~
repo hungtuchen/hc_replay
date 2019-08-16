@@ -174,8 +174,7 @@ if restriction_iv == 1
         end
     
 else
-    Giant_z_hat = nan(restriction_iv, 2);
-    Giant_z = nan(restriction_iv, 2);
+    Giant_z_hat = zeros(restriction_iv, 2);
     
     for t_i = 1:restriction_iv
 
@@ -233,7 +232,7 @@ imagesc(confusionmat(z, Giant_z_hat(t_i)'))
 else
 
 for t_i = 1:restriction_iv
-    
+
 z = interp1(ENC_linpos.tvec, expCond(1).tc.pos_idx, Giant_Q{t_i}.tvec, 'nearest'); 
 Giant_z(t_i, :) = z;
 
